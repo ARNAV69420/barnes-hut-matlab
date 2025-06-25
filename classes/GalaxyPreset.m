@@ -1,92 +1,71 @@
 classdef GalaxyPreset
     properties
         G double
-        dt double
-        T double
         eps double
         theta double
 
-        particles double   % [x, y, mass, id]
+        positions double   % [x, y]
         velocities double  % [vx, vy] for each non-central particle
-        masses double      % star masses (excluding black hole)
+        masses double      % star masses
+        bounds double      % [xmin xmax; ymin ymax]
     end
 
     methods (Static)
         function preset = loadpreset(name)
             switch lower(name)
                 case {'1g', 'single'}
-                    preset = GalaxyPreset.load('data/1g.mat');
+                    preset = GalaxyPreset.singleGalaxy();
                 case {'2g', 'double'}
-                    preset = GalaxyPreset.load('data/2g.mat');
-                case {'random'}
-                    preset = GalaxyPreset.generateRandom();
+                    preset = GalaxyPreset.doubleGalaxy();
                 otherwise
                     error("Unknown preset: %s", name);
             end
         end
 
-        function save(preset, filename)
-            data = struct();
-            data.G = preset.G;
-            data.dt = preset.dt;
-            data.T = preset.T;
-            data.eps = preset.eps;
-            data.theta = preset.theta;
-            data.particles = preset.particles;
-            data.velocities = preset.velocities;
-            data.masses = preset.masses;
-            save(filename, '-struct', 'data');
-        end
-
-        function preset = load(filename)
-            data = load(filename);
+        function preset = doubleGalaxy()
             preset = GalaxyPreset();
-            preset.G = data.G;
-            preset.dt = data.dt;
-            preset.T = data.T;
-            preset.eps = data.eps;
-            preset.theta = data.theta;
-            preset.particles = data.particles;
-            preset.velocities = data.velocities;
-            preset.masses = data.masses;
-        end
-
-        function preset = generateRandom()
-            % Simulation parameters
-            G = 0.01;
-            dt = 0.0001;
-            T = 5;
-            eps = 0.01;
-            theta = 0.5;
+            preset.G = 0.5;
+            preset.eps = 0.05;
+            preset.theta = 0.6;
         
-            N = 50;  % Number of particles
+            N = 100;
+            r_min = 1.5;
+            r_max = 3.5;
+            centre1 = [0, 0];
+            centre2 = [15, 10];
         
-            % Black hole (central particle, can be low mass here)
-            bh_pos = [0.5, 0.5];
-            bh_mass = 1000;
-            bh_id = 0;
-            particles = [bh_pos, bh_mass, bh_id];
+            % ---- First Galaxy ----
+            radius1 = sqrt(rand(N, 1) * (r_max^2 - r_min^2) + r_min^2);
+            angle1 = 2 * pi * rand(N, 1);
+            x1 = radius1 .* cos(angle1);
+            y1 = radius1 .* sin(angle1);
+            pos1 = [x1, y1] + centre1;  % ✔️ Shift to galaxy 1 center
+            v1_mag = sqrt(preset.G * 1000 ./ radius1);
+            vx1 = -v1_mag .* sin(angle1);
+            vy1 = v1_mag .* cos(angle1);
+            vel1 = [vx1, vy1];
         
-            % Random particle positions, velocities, masses
-            rng('shuffle');
-            positions = rand(N, 2);              % [0,1] positions
-            masses = 1 + 9 * rand(N,1);          % masses in [1,10]
-            velocities = 0.5 * (rand(N,2) - 0.5);% small random velocities
-            ids = (1:N)';
+            % ---- Second Galaxy ----
+            radius2 = sqrt(rand(N, 1) * (r_max^2 - r_min^2) + r_min^2);
+            angle2 = 2 * pi * rand(N, 1);
+            x2 = radius2 .* cos(angle2);
+            y2 = radius2 .* sin(angle2);
+            pos2 = [x2, y2] + centre2;  % ✔️ Shift to galaxy 2 center
+            v2_mag = sqrt(preset.G * 1000 ./ radius2);
+            vx2 = -v2_mag .* sin(angle2);
+            vy2 = v2_mag .* cos(angle2);
+            vel2 = [vx2, vy2];
         
-            % Append to particles matrix
-            particles = [particles; [positions, masses, ids]];
+            % ---- Central Bodies ----
+            posCenter = [centre1; centre2];
+            velCenter = [0, 0; 0, 0];
+            massCenter = [1000; 1000];
         
-            % Construct preset object
-            preset = GalaxyPreset();
-            preset.G = G;
-            preset.dt = dt;
-            preset.T = T;
-            preset.eps = eps;
-            preset.theta = theta;
-            preset.particles = particles;
-            preset.velocities = velocities;
-            preset.masses = masses;
+            % ---- Combine All ----
+            preset.positions = [posCenter; pos1; pos2];
+            preset.velocities = [velCenter; vel1; vel2];
+            preset.masses = [massCenter; ones(2*N, 1)];
+            preset.bounds = [-2000 2000; -2000 2000];  % Adjusted bounds to match galaxy layout
         end
     end
 end

@@ -1,5 +1,5 @@
 % Load data
-data = load('data/1grun.mat');
+data = load('data/2grun.mat');
 ts = data.ans;
 
 positions = ts.Data;  % [51 x 2 x 7632]
@@ -16,24 +16,24 @@ numUniform = length(time_uniform);
 % Preallocate interpolated positions
 interpPos = zeros(numParticles, 2, numUniform);
 
-% Interpolate each (x,y) for each particle
 for i = 1:numParticles
-    x = squeeze(positions(i,1,:));  % [7632 x 1]
+    x = squeeze(positions(i,1,:));
     y = squeeze(positions(i,2,:));
     interpPos(i,1,:) = interp1(time, x, time_uniform, 'linear');
     interpPos(i,2,:) = interp1(time, y, time_uniform, 'linear');
 end
 
-redIndices = [1];  % example: particles 1, 3, and 5 are red
-numParticles = size(positions, 1);
+% Color setup
+redIndices = [1, 2];  % mark specific particles red
+colors = repmat([0 0 1], numParticles, 1);  % default: blue
+colors(redIndices, :) = repmat([1 0 0], numel(redIndices), 1);  % red
 
-% Create color matrix: default all blue
-colors = repmat([0 0 1], numParticles, 1);  % RGB for blue
+% Create video writer
+video = VideoWriter('galaxy_simulation.mp4', 'MPEG-4');
+video.FrameRate = fps;
+open(video);
 
-% Set specific particles to red
-colors(redIndices, :) = repmat([1 0 0], length(redIndices), 1);  % RGB for red
-
-% --- Initial plot
+% Setup figure
 figure;
 b = 19;
 c = [5,5];
@@ -42,10 +42,18 @@ axis equal;
 xlim(c + [-b b]);
 ylim(c + [-b b]);
 
-% --- Animation loop
+% --- Animation & Recording ---
 for t = 2:numUniform
     h.XData = interpPos(:,1,t);
     h.YData = interpPos(:,2,t);
     title(sprintf('Time: %.3f s', time_uniform(t)));
-    pause(dt_uniform);
+
+    drawnow;  % Update figure
+    frame = getframe(gcf);
+    writeVideo(video, frame);
 end
+
+% Close video
+close(video);
+
+ 

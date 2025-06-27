@@ -22,6 +22,35 @@ classdef GalaxyPreset
             end
         end
 
+        function preset = singleGalaxy()
+            preset = GalaxyPreset();
+            preset.G = 0.5;
+            preset.eps = 0.05;
+            preset.theta = 0.5;
+        
+            N = 100;
+            r_min = 2;   % Inner gap
+            r_max = 5;   % Outer edge of the ring
+        
+            % Random radial distances and angles for a ring
+            radius = sqrt(rand(N, 1) * (r_max^2 - r_min^2) + r_min^2);  % Uniform area distribution
+            angle = 2 * pi * rand(N, 1);
+        
+            % Convert to cartesian positions
+            x = radius .* cos(angle);
+            y = radius .* sin(angle);
+            preset.positions = [0 0;x, y];  % +1 central massive body
+        
+            % Circular velocity magnitude: v = sqrt(G * M / r) (we'll scale it)
+            v = sqrt(preset.G * 1000 ./ radius);  % orbiting central mass (roughly)
+            vx = -v .* sin(angle);
+            vy = v .* cos(angle);
+            preset.velocities = [0 0; vx, vy];
+        
+            preset.masses = [1000; ones(N, 1)];  % small stars + big central mass
+            preset.bounds = [-50 50; -50 50];    % adjust view limits as needed 
+        end
+
         function preset = doubleGalaxy()
             preset = GalaxyPreset();
             preset.G = 0.5;
